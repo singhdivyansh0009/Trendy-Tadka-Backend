@@ -4,6 +4,8 @@ import { ApiResponse } from "../utils/apiResponse.utils.js";
 import { uploadOnCloudinary } from "../utils/cloudinary.utils.js";
 import jwt from "jsonwebtoken";
 import fs from "fs";
+import { genrateOtp } from "../utils/otp.utils.js";
+import { sendEmail } from "../utils/email.utils.js";
 
 // function to genrate access and refresh token
 const genrateTokens = async (user) => {
@@ -247,4 +249,120 @@ const reGenerateAccessToken = async (req,res) => {
    }
 }
 
-export {registerUser,loginUser,logoutUser,reGenerateAccessToken};
+//function to change password
+const changePassword = async (req,res) =>{
+   try{
+      // get the old password and new password from the user
+      const {oldPassword,newPassword} = req.body;
+
+      // get the user id from the user stored in request object that is added during login
+      const userId = req.user?._id;
+      if(!userId)
+         throw new ApiError(401,"Unathorized request");
+
+      // get the user from database 
+      const user = await User.findById(userId);
+      if(!user)
+         throw new ApiError(404,"User not found");
+
+      //verify the oldPasssword
+      const isValid = user.isPasswordCorrect(oldPassword);
+      if(!isValid)
+         throw new ApiError('401',"Invalid old password");
+
+      //update the old password and save to the document
+      user.password = newPassword;
+      await user.save({validateBeforeSave : false});
+      
+      return res.status(200).json(new ApiResponse(
+         200,
+         {},
+         "Password changed successfully"
+      ))
+
+   }catch(err){
+      console.log("Error while changing password :",err);
+      if(err instanceof ApiError)
+         return res.status(err.statusCode).json(err);
+      res.status(500).json({ message: "Internal Server Error" });
+   }
+}
+//function for sent otp (Note : logic for otp expiry is not written)
+const sendOtp = async (req,res) =>{
+   try{
+   // get the email from user
+   const {email} = req.body;
+
+   // get the user from database
+   const user = await User.findOne({email});
+   if(!user)
+      throw new ApiError(404,"Email not registered");
+
+   // genrate the otp
+   const otp = await genrateOtp();
+   // save the otp in db
+   user.otp = otp;
+   await user.save({validateBeforeSave : false});
+   // send the otp to user via email
+   const message = {
+      subject : "OTP for login",
+      text : `Your OTP is ${otp} `,
+   }
+   const mailResponse = await sendEmail("Divyansh","craig83@ethereal.email",email,message);
+   if(!mailResponse)
+      throw new ApiError(500,"Failed to send OTP");
+   // send the response
+   return res.status(200).json(new ApiResponse(
+      200,
+      {},
+      "otp sent successfully"
+   ))
+ }catch(err){
+   console.log("Error while sending otp :",err);
+   if(err instanceof ApiError)
+      return res.status(err.statusCode).json(err);
+   return res.status(500).json({message:"Internal server error"});
+ }
+   
+}
+//function for otp verification
+const verifyOTP = async (req,res) => {
+   try{
+     //get the otp from the user 
+     const {email,otp} = req.body;
+
+     //verify the user 
+     const user = await User.findOne({email}).select("-password -refreshToken");
+     if(!user){
+         throw new ApiError(404,"Enter valid email");
+     }
+
+     if(user.otp !== otp.toString())
+        throw new ApiError(401,"Incorrect otp");
+     
+     //delete the otp
+     user.otp = undefined;
+     await user.save({validateBeforeSave : false});
+
+     return res.status(200).json(new ApiResponse(
+         200,
+         user,
+         "otp verified successfully"
+     ))
+   }catch(err){
+      console.log("Error while verifying otp :",err);
+      if(err instanceof ApiError)
+         return res.status(err.statusCode).json(err);
+      return res.status(500).json({message:"Internal server error"});
+   }
+
+}
+export {
+   registerUser,
+   loginUser,
+   logoutUser,
+   reGenerateAccessToken,
+   changePassword,
+   sendOtp,
+   verifyOTP
+};
