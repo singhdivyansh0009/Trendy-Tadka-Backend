@@ -38,7 +38,8 @@ const userSchema = new Schema(
                 type : Schema.Types.ObjectId,
                 ref : "Videos"
             }
-        ]
+        ],
+        otp : String
     },{  timestamps: true }
 );
 
