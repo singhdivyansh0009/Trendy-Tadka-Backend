@@ -357,6 +357,96 @@ const verifyOTP = async (req,res) => {
    }
 
 }
+// function to update the avatar
+const updateAvatar = async (req,res) => {
+   try{
+      // check for the files
+      if(!req.files?.avatar)
+         throw new ApiError(400,"Avatar is required");
+
+      //get the new avatar localpath
+      const avatarLocalPath = req.files?.avatar[0]?.path;
+      if(!avatarLocalPath){
+         throw new ApiError(400,"Avatar is required");
+      }
+      // get the user
+      const user = await User.findById(req.user._id);
+      if(!user)
+         throw new ApiError(404,"User not found");
+
+      // if present push that on cloudinary
+      const avatar = await uploadOnCloudinary(avatarLocalPath);
+
+      // update the avatar and save 
+      user.avatar = avatar.url;
+      const updatedUser = await user.save(
+         {validateBeforeSave : false},
+         {new:true}
+      )
+      // remove the password and refresh token for saftey before sending response
+      const safeUser = updatedUser.toObject();
+      delete updatedUser["password"];
+      delete updatedUser["refreshToken"];
+      return res.status(200).json(
+         new ApiResponse( 
+            200,
+            updatedUser,
+            "Avatar updated successfully"
+         )
+      );
+
+   }catch(err){
+       console.log("Error while updating avatar :", err);
+       if(err instanceof ApiError)
+         return res.status(err.statusCode).json(err);
+      return res.status(500).json({message:"Internal server error"});
+   }
+}
+
+const updateCoverImage = async (req,res) => {
+   try{
+      // check for the files
+      if(!req.files?.avatar)
+         throw new ApiError(400,"CoverImage is required");
+
+      //get the new avatar localpath
+      const coverImageLocalPath = req.files?.avatar[0]?.path;
+      if(!coverImageLocalPath){
+         throw new ApiError(400,"Avatar is required");
+      }
+      // get the user
+      const user = await User.findById(req.user._id);
+      if(!user)
+         throw new ApiError(404,"User not found");
+
+      // if present push that on cloudinary
+      const coverImage = await uploadOnCloudinary(coverImageLocalPath);
+
+      // update the avatar and save 
+      user.coverImage = coverImage.url;
+      const updatedUser = await user.save(
+         {validateBeforeSave : false},
+         {new:true}
+      )
+      // remove the password and refresh token for saftey before sending response
+      const safeUser = updatedUser.toObject();
+      delete updatedUser["password"];
+      delete updatedUser["refreshToken"];
+      return res.status(200).json(
+         new ApiResponse( 
+            200,
+            updatedUser,
+            "coverImage updated successfully"
+         )
+      );
+
+   }catch(err){
+       console.log("Error while updating avatar :", err);
+       if(err instanceof ApiError)
+         return res.status(err.statusCode).json(err);
+      return res.status(500).json({message:"Internal server error"});
+   }
+}
 export {
    registerUser,
    loginUser,
@@ -364,5 +454,7 @@ export {
    reGenerateAccessToken,
    changePassword,
    sendOtp,
-   verifyOTP
+   verifyOTP,
+   updateAvatar,
+   updateCoverImage
 };
