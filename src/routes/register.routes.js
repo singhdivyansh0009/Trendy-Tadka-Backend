@@ -1,5 +1,5 @@
 import Router from "express";
-import { loginUser, logoutUser, registerUser, verifyOTP } from "../controllers/user.controllers.js";
+import { loginUser, logoutUser, registerUser, updateAvatar, updateCoverImage, verifyOTP } from "../controllers/user.controllers.js";
 import { upload } from "../middlewares/multer.middlewares.js"
 import { verifyJWT } from "../middlewares/auth.middlewares.js";
 import { reGenerateAccessToken } from "../controllers/user.controllers.js";
@@ -29,5 +29,27 @@ router.route('/refresh-token').post(reGenerateAccessToken);
 //route to sent otp and verify otp
 router.route('/send-otp').post(sendOtp);
 router.route('/verify-otp').post(verifyOTP);
+
+//route to update details 
+router.route('/update-avatar').post(
+    verifyJWT, 
+    upload.fields( [{
+      name : "avatar",
+      maxCount: 1
+    }
+   ]),
+    updateAvatar
+);
+
+router.route('/update-cover-image').post(
+    verifyJWT, 
+    upload.fields( [{
+      name : "avatar",
+      maxCount: 1
+    }
+   ]),
+   updateCoverImage
+);
+
 
 export default router; 
