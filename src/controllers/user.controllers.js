@@ -6,7 +6,7 @@ import jwt from "jsonwebtoken";
 import fs from "fs";
 import { genrateOtp } from "../utils/otp.utils.js";
 import { sendEmail } from "../utils/email.utils.js";
-
+import mongoose from "mongoose";
 // function to genrate access and refresh token
 const genrateTokens = async (user) => {
     try {
@@ -447,6 +447,149 @@ const updateCoverImage = async (req,res) => {
       return res.status(500).json({message:"Internal server error"});
    }
 }
+
+// function to get user profile
+const getUserChannelProfile = async(req,res) =>{
+   try{
+     // get the username from the url 
+     const {username} = req.params;
+     if(!username){
+        throw new ApiError(404,"username is missing")
+     }
+     
+     //aggregation pipeline
+     const channel = await User.aggregate([
+          // stage 1 : Get the user channel
+          {
+            $match : {
+               username,
+            }
+          },
+          // stage 2: get all subscribers
+          {
+            $lookup : {
+                from : "subscriptions",
+                localField : "_id",
+                foreignField: "channel",
+                as: "subscribers"
+            }
+          },
+          //stage 3: subscribed to
+          {
+            $lookup:{
+               from:"subscriptions",
+               localField:"_id",
+               foreignField:"subscriber",
+               as:"subscribedTo"
+            }
+          },
+          //stage 3: add subscriberCount and channelSubscribedCount
+          {
+            $addFields:{
+                subscribersCount : {
+                   $size: "$subscribers" 
+                },
+                channelSubscribedCount:{
+                  $size: "$subscribedTo" 
+                },
+                isSubscribed : {
+                   $cond: {
+                       if : {$in : [req.user?._id,"$subscribers.subscriber"]},
+                       then : true,
+                       else : false
+                   }
+                }
+            }
+          },
+          // stage 4
+          {
+            $project : {
+               fullName : 1,
+               username : 1,
+               subscribersCount : 1,
+               channelSubscribedCount : 1,
+               isSubscribed : 1,
+               avatar : 1,
+               coverImage : 1
+            }
+          }
+     ]);
+
+     //check for channel
+     if(!channel){
+         throw new ApiError(404,"Channel does'nt Exist");
+     }
+     return res
+            .status(200)
+            .json(new ApiResponse(
+               200,
+               channel[0],
+               "User channel fetched successfully"
+            ));
+
+   }catch(err){
+       console.log("Error while getting user profile :",err);
+       if(err instanceof ApiError)
+          return res.status(err.statusCode).json(err);
+       return res.status(500).json({
+         message : "Internal Server error"
+       })
+   }
+
+}
+
+//function to get watch history 
+const getWatchHistory = async(req,res) =>{
+   const user = await User.aggregate([
+      {
+        $match : {
+           _id : new mongoose.Types.ObjectId(req.user._id)
+        }
+      },
+      {
+         $lookup : {
+            from:"vedios",
+            localField:"watchHistory",
+            foreignField:"_id",
+            as:"watchHistory",
+            pipeline: [
+             {
+               $lookup : {
+                  from : "users",
+                  localField:"owner",
+                  foreignField:"_id",
+                  as:"owner",
+                  pipeline : [
+                     {
+                        $project:{
+                           fullName:1,
+                           username:1,
+                           avatar:1
+                        }
+                     }
+                  ]
+               }
+             },
+             {
+               $addFields : {
+                  owner : {
+                     $first : "$owner"
+                  }
+               }
+             }
+            ]
+         }
+      }
+   ]);
+   return res
+         .status(200)
+         .json(new ApiResponse(
+            200,
+            user[0].watchHistory,
+            "watch history sent sucessfully"
+         ))
+}
+
 export {
    registerUser,
    loginUser,
@@ -456,5 +599,7 @@ export {
    sendOtp,
    verifyOTP,
    updateAvatar,
-   updateCoverImage
+   updateCoverImage,
+   getUserChannelProfile,
+   getWatchHistory
 };
