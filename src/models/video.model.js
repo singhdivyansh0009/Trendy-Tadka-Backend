@@ -1,5 +1,5 @@
 import mongoose, { Schema } from "mongoose";
-const VideosSchema = new Schema(
+const VideoSchema = new Schema(
     {
         vedioFile : {
             type : String,
@@ -35,4 +35,4 @@ const VideosSchema = new Schema(
     }, { timestamps : true}
 );
 
-export const Videos = mongoose.model('Videos',VideosSchema);
+export const Video = mongoose.model('Video',VideosSchema);
