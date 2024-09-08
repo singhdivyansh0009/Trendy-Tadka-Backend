@@ -7,6 +7,7 @@ import fs from "fs";
 import { genrateOtp } from "../utils/otp.utils.js";
 import { sendEmail } from "../utils/email.utils.js";
 import mongoose from "mongoose";
+
 // function to genrate access and refresh token
 const genrateTokens = async (user) => {
     try {
@@ -105,7 +106,7 @@ const loginUser = async (req,res) => {
       try{
         // get data from frontend
         const {email, username, password} = req.body;
-        console.log("Email ",email,"Pass",password,"user ",req.body);
+        
       // Validate that at least one of email or username is provided
       if (email?.trim() === "" && username?.trim() === "") {
          throw new ApiError(400, "Either email or username is required");
@@ -168,8 +169,8 @@ const logoutUser = async (req,res) => {
    try{
       // get the user from database using user set on req by verifyJWT middleware
       await User.findByIdAndUpdate(req.user._id,{
-          $set : {
-            refreshToken : undefined
+          $unset : {
+            refreshToken : 1
          }
       })
       // clear the cookies and return the response to the user
@@ -361,11 +362,11 @@ const verifyOTP = async (req,res) => {
 const updateAvatar = async (req,res) => {
    try{
       // check for the files
-      if(!req.files?.avatar)
+      if(!req.file?.fieldname)
          throw new ApiError(400,"Avatar is required");
 
       //get the new avatar localpath
-      const avatarLocalPath = req.files?.avatar[0]?.path;
+      const avatarLocalPath = req.file?.path;
       if(!avatarLocalPath){
          throw new ApiError(400,"Avatar is required");
       }
@@ -403,14 +404,15 @@ const updateAvatar = async (req,res) => {
    }
 }
 
+// function to update the avatar
 const updateCoverImage = async (req,res) => {
    try{
       // check for the files
-      if(!req.files?.avatar)
+      if(!req.file?.fieldname)
          throw new ApiError(400,"CoverImage is required");
 
       //get the new avatar localpath
-      const coverImageLocalPath = req.files?.avatar[0]?.path;
+      const coverImageLocalPath = req.file?.path;
       if(!coverImageLocalPath){
          throw new ApiError(400,"Avatar is required");
       }
@@ -441,7 +443,7 @@ const updateCoverImage = async (req,res) => {
       );
 
    }catch(err){
-       console.log("Error while updating avatar :", err);
+       console.log("Error while updating coverImage :", err);
        if(err instanceof ApiError)
          return res.status(err.statusCode).json(err);
       return res.status(500).json({message:"Internal server error"});
@@ -589,7 +591,6 @@ const getWatchHistory = async(req,res) =>{
             "watch history sent sucessfully"
          ))
 }
-
 export {
    registerUser,
    loginUser,
