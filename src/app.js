@@ -7,7 +7,10 @@ app.use(express.json());
 app.use(express.urlencoded({extended:true}));
 app.use(express.static("public"));
 app.use(cookieParser());
-import userRouter from "./routes/register.routes.js";
-app.use('/api/v1/users', userRouter);  // middleware for user releated routes
+
+import userRouter from "./routes/user.routes.js";
+import vedioRouter from "./routes/video.routes.js"
+app.use('/api/v1/users', userRouter);  // middleware for user related routes
+app.use('/api/v1/video',vedioRouter); // middleware for vedio related routes
 
 export default app;
