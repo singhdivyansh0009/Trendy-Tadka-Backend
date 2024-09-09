@@ -450,7 +450,7 @@ const updateCoverImage = async (req,res) => {
    }
 }
 
-// function to get user profile
+// function to get user profile (Note : testing is not done)
 const getUserChannelProfile = async(req,res) =>{
    try{
      // get the username from the url 
@@ -540,7 +540,7 @@ const getUserChannelProfile = async(req,res) =>{
 
 }
 
-//function to get watch history 
+//function to get watch history (Note : testing is not done)
 const getWatchHistory = async(req,res) =>{
    const user = await User.aggregate([
       {

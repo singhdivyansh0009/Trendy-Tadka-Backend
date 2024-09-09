@@ -10,7 +10,9 @@ app.use(cookieParser());
 
 import userRouter from "./routes/user.routes.js";
 import vedioRouter from "./routes/video.routes.js"
+import subscriptionRouter from "./routes/subscription.routes.js"
 app.use('/api/v1/users', userRouter);  // middleware for user related routes
 app.use('/api/v1/video',vedioRouter); // middleware for vedio related routes
+app.use('/api/v1/subscription',subscriptionRouter); // middleware for subscription routes
 
 export default app;
