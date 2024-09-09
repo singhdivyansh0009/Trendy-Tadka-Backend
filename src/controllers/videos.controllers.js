@@ -185,7 +185,7 @@ const getVideoById = async(req,res) => {
   }
 }
 
-// To manage played video
+// To add in watchHistory
 const addToWatchHistory = async(req,res) => {
   try{
     //get the video id from the query of url
@@ -232,9 +232,43 @@ const addToWatchHistory = async(req,res) => {
   }
 }
 
+// to delete the video
+const deleteVideo = async(req,res) => {
+   try{
+      // get the video id
+      const {id} = req.body;
+      if(!id)
+        throw new ApiError(401,"vedio id is required");
+
+      // delete the video from the database
+      const isDeleted = await Video.deleteOne(
+        {
+          _id : id
+        }
+      )
+      if(!isDeleted)
+        throw new ApiError(400,"Video deletion unsucessful");
+      return res
+             .status(200)
+             .json( new ApiResponse(
+                 200,
+                 {},
+                 "Video deleted sucessfully"
+             ))
+   }catch(err){
+    console.log("Error while deleting the video :", err);
+    if(err instanceof ApiError)
+      return res.status(err.statusCode).json(err);
+    return res.status(500).json({
+       message : "Internal server error"
+    })
+   }
+}
+
 export {
     uploadVideo,
     getVideos,
     addToWatchHistory,
-    getVideoById
+    getVideoById,
+    deleteVideo
 };
