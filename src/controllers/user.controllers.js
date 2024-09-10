@@ -450,7 +450,7 @@ const updateCoverImage = async (req,res) => {
    }
 }
 
-// function to get user profile (Note : testing is not done)
+// function to get user profile 
 const getUserChannelProfile = async(req,res) =>{
    try{
      // get the username from the url 
@@ -458,16 +458,16 @@ const getUserChannelProfile = async(req,res) =>{
      if(!username){
         throw new ApiError(404,"username is missing")
      }
-     
+
      //aggregation pipeline
      const channel = await User.aggregate([
           // stage 1 : Get the user channel
           {
             $match : {
-               username,
+               username
             }
           },
-          // stage 2: get all subscribers
+         // stage 2: get all subscribers
           {
             $lookup : {
                 from : "subscriptions",
@@ -477,7 +477,7 @@ const getUserChannelProfile = async(req,res) =>{
             }
           },
           //stage 3: subscribed to
-          {
+         {
             $lookup:{
                from:"subscriptions",
                localField:"_id",
@@ -485,7 +485,7 @@ const getUserChannelProfile = async(req,res) =>{
                as:"subscribedTo"
             }
           },
-          //stage 3: add subscriberCount and channelSubscribedCount
+         //  stage 3: add subscriberCount and channelSubscribedCount
           {
             $addFields:{
                 subscribersCount : {
@@ -516,11 +516,13 @@ const getUserChannelProfile = async(req,res) =>{
             }
           }
      ]);
+     console.log(channel);
 
      //check for channel
-     if(!channel){
+     if(!channel[0]){
          throw new ApiError(404,"Channel does'nt Exist");
      }
+     
      return res
             .status(200)
             .json(new ApiResponse(
@@ -540,17 +542,17 @@ const getUserChannelProfile = async(req,res) =>{
 
 }
 
-//function to get watch history (Note : testing is not done)
+//function to get watch history 
 const getWatchHistory = async(req,res) =>{
    const user = await User.aggregate([
       {
         $match : {
-           _id : new mongoose.Types.ObjectId(req.user._id)
+           _id : new mongoose.Types.ObjectId(req.user._id) // in aggregate the string does not automatically conver into mongodb objectId
         }
       },
       {
          $lookup : {
-            from:"vedios",
+            from:"videos",
             localField:"watchHistory",
             foreignField:"_id",
             as:"watchHistory",
@@ -580,9 +582,10 @@ const getWatchHistory = async(req,res) =>{
                }
              }
             ]
-         }
+         },
       }
    ]);
+  
    return res
          .status(200)
          .json(new ApiResponse(
