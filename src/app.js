@@ -13,9 +13,11 @@ import vedioRouter from "./routes/video.routes.js"
 import subscriptionRouter from "./routes/subscription.routes.js"
 import playlistRouter from "./routes/playlist.routes.js"
 import commentRouter from "./routes/comment.routes.js"
+import likeRouter from "./routes/like.route.js"
 app.use('/api/v1/users', userRouter);  // middleware for user related routes
 app.use('/api/v1/video',vedioRouter); // middleware for vedio related routes
 app.use('/api/v1/subscription',subscriptionRouter); // middleware for subscription routes
 app.use('/api/v1/playlist',playlistRouter); // middleware for playlist routes
 app.use('/api/v1/comment',commentRouter); // middleware for comment routes
+app.use('/api/v1/like',likeRouter); // middleware for Like routes
 export default app;
