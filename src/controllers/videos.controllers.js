@@ -4,6 +4,8 @@ import { ApiResponse } from "../utils/apiResponse.utils.js"
 import fs from "fs";
 import { Video } from "../models/video.model.js";
 import { User } from "../models/user.models.js";
+import mongoose from "mongoose";
+// import { getLikeCount } from "./like.controllers.js";
 
 // function to manage views
 // Note : There is issue in managing the views when user clear the watch history
@@ -124,13 +126,25 @@ const getVideos = async(req,res) => {
           }
       },
       {
+         $lookup : {
+            from : "users",
+            localField : "owner",
+            foreignField : "_id",
+            as : "owner"
+         }
+      },
+      {
+        $unwind : "$owner"
+      },
+      {
           $project: {
               videoFile: 1,
               title: 1,
               descriptions: 1,
               views: 1,
               thumbnail: 1,
-              owner: 1,
+              "owner.username": 1,
+              "owner.avatar":1,
               createdAt: 1
           }
       }
@@ -161,18 +175,46 @@ const getVideos = async(req,res) => {
 const getVideoById = async(req,res) => {
   try{
     // get the id of video
-    const {id} = req.query;
-
+    const {id} = req.params;
+    
     //get the video document for that id 
-    const video = await Video.findById(id);
+    const video = await Video.aggregate([
+        {
+          $match : {
+            _id : new mongoose.Types.ObjectId(id)
+          },
+        },
+        {
+          $lookup : {
+             from : "likes",
+             localField : "_id",
+             foreignField : "video",
+             as : "likes"
+          },
+        },
+        {
+            $addFields:{
+              likeCount : {
+                 $size: "$likes"
+              },
+              isLiked : {
+                $in: [req.user?._id, "$likes.likeBy"]
+              }
+          }
+        }
+        
+    ]);
+
     if(!video)
       throw new ApiError(404,"Video not found");
+  
+    console.log(video);
 
     // sent the response
     return res.status(200)
               .json(new ApiResponse(
                 200,
-                video
+                video,
               ))
 
   }catch(err){

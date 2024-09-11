@@ -22,10 +22,10 @@ router.route("/upload-video").post(
    uploadVideo
 )
 // route to get the videos
-router.route("/get-videos").post(getVideos);
+router.route("/").get(getVideos);
 
 //route to get video by id
-router.route("/get-video-by-id").post(getVideoById);
+router.route("/:id").get(verifyJWT,getVideoById);
 
 //route to add to watch history
 router.route("/add-to-watch-history").post(verifyJWT,addToWatchHistory);
