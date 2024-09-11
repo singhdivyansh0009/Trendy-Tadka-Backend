@@ -206,7 +206,7 @@ const removeVideosFromPlaylist = async (req,res) => {
     }
 }
 
-// to get playlist by id  (TODO : we have to remove some field from the owner)
+// to get playlist by id  
 const getPlaylistById = async (req,res) =>{
     try {
         // get the playlist id
@@ -236,6 +236,15 @@ const getPlaylistById = async (req,res) =>{
                     foreignField : "_id",
                     as : "playlistVideos"
                 }
+            },
+            {
+                $unwind : "$owner"
+            },
+            {
+                $project : {
+                    "owner.password": 0,
+                    "owner.refreshToken":0
+                }
             }
         ]);
         if(!playlist.length)
@@ -264,8 +273,35 @@ const getUserPlaylists = async (req,res) =>{
         if(!userId)
             throw new ApiError(400,"user is missing");
          
-        const playlists = await Playlist.find({owner : userId});
-        if(!playlists)
+        const playlists = await Playlist.aggregate ( [
+            {
+                $match : {
+                    owner : new mongoose.Types.ObjectId(userId) 
+                }
+            },
+            {
+                $lookup : {
+                    from : "users",
+                    localField : "owner",
+                    foreignField : "_id",
+                    as : "owner"
+                }
+            },
+            {
+                $unwind : "$owner"
+            },
+            {
+                $project : {
+                    name : 1,
+                    description : 1,
+                    thumbnail : 1,
+                    "owner.username":1,
+                    "owner.avatar": 1
+                }
+            }
+        ]);
+        
+        if(!playlists.length)
             throw new ApiError(404,"Playlists not found");
 
         return res.status(200)
