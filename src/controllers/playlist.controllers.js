@@ -65,8 +65,11 @@ const updatePlaylist = async (req,res) => {
             throw new ApiError(400,"unkown request");
         
         // update and get the updated playlist
-        const playlist = await Playlist.findByIdAndUpdate(
-            {_id : playlistId},
+        const playlist = await Playlist.findOneAndUpdate(
+            {
+                _id : playlistId,
+                owner : req.user?._id
+            },
             {
                 $set : {
                     name,
@@ -78,12 +81,12 @@ const updatePlaylist = async (req,res) => {
             }
         )
         if(!playlist)
-            throw new ApiError(401,"Playlist update unsuccessful");
+            throw new ApiError(401,"Playlist not found");
 
         // send the response
         return res
                .status(200)
-               .json(new ApiError(
+               .json(new ApiResponse(
                    200,
                    playlist,
                    "Playlist updated successfully"
@@ -105,14 +108,19 @@ const deletePlaylist = async (req,res) => {
             throw new ApiError(400,"unkown request");
         
         // remove the playlist
-        const playlist = await Playlist.deleteOne({_id:playlistId});
+        const playlist = await Playlist.findOneAndDelete(
+            {
+                _id:playlistId,
+                owner: req.user?._id
+            }
+        );
         if(!playlist)
-            throw new ApiError(401,"Playlist deletion unsuccessful");
+            throw new ApiError(404,"Playlist not found");
 
         // send the response
         return res
                .status(200)
-               .json(new ApiError(
+               .json(new ApiResponse(
                    200,
                    {},
                    "Playlist deleted successfully"
@@ -125,32 +133,35 @@ const deletePlaylist = async (req,res) => {
     }
 }
 
-// to add videos to playlist  (TODO : to add multiple videos at a time)
+// to add videos to playlist  (TODO : to add multiple videos at a time) (Not tested)
 const addVideosToPlaylist = async (req,res) => {
     try {
         const { playlistId , videoId} = req.params;
         if(!playlistId)
             throw new ApiError(400,"playlist is missing");
 
-        // get the playlist
-        const playlist = await Playlist.findById(playlistId);
+        // get the playlist and add video
+        const playlist = await Playlist.findOneAndUpdate(
+            {
+                _id : playlistId,
+                owner : req.user?._id
+            },
+            {
+                $push : {
+                    videos : videoId
+                }
+            },
+            {
+                new : true
+            }
+        );
         if(!playlist)
             throw new ApiError(404,"playlist not found");
-        
-        // verify the loginned user with owner of the playlist
-        if(!(playlist.owner).equals(req.user._id))
-            throw new ApiError(401,"Unauothrized request");
-
-        // add the video and save
-        playlist.videos.push(videoId);
-        const updatedPlaylist = await playlist.save();
-        if(!updatePlaylist)
-            throw new ApiError(401,"Video addition unsuccessfull");
 
         return res.status(200)
                   .json(new ApiResponse(
                     200,
-                    updatedPlaylist,
+                    playlist,
                     "Video added to playlist"
                   ))
     } catch (err) {
@@ -161,7 +172,7 @@ const addVideosToPlaylist = async (req,res) => {
     }
 }
 
-// to remove videos from playlist 
+// to remove videos from playlist (Not tested)
 const removeVideosFromPlaylist = async (req,res) => {
     try {
         const { playlistId , videoId} = req.params;
@@ -169,24 +180,22 @@ const removeVideosFromPlaylist = async (req,res) => {
             throw new ApiError(400,"playlist is missing");
 
         // get the playlist
-        const playlist = await Playlist.findById(playlistId);
+        const playlist = await Playlist.findOneAndDelete(
+            {
+                _id : playlistId,
+                $in : {
+                    videos : videoId
+                }, 
+                owner : req.user?._id
+            }
+        );
         if(!playlist)
             throw new ApiError(404,"playlist not found");
         
-        // verify the loginned user with owner of the playlist
-        if(!(playlist.owner).equals(req.user._id))
-            throw new ApiError(401,"Unauothrized request");
-
-        // remove the video and save
-        playlist.videos.remove(videoId);
-        const updatedPlaylist = await playlist.save();
-        if(!updatePlaylist)
-            throw new ApiError(401,"Video removal unsuccessfull");
-
         return res.status(200)
                   .json(new ApiResponse(
                     200,
-                    updatedPlaylist,
+                    playlist,
                     "Video removed from playlist"
                   ))
     } catch (err) {

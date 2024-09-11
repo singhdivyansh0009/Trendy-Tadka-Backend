@@ -18,8 +18,8 @@ router.route("/create-playlist").post(
 );
 
 router.route("/:playlistId").get(getPlaylistById)
-                            .patch(updatePlaylist)
-                            .delete(deletePlaylist);
+                            .patch(verifyJWT,updatePlaylist)
+                            .delete(verifyJWT,deletePlaylist);
                             
 router.route("/user/:userId").get(getUserPlaylists);
 
