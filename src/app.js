@@ -7,7 +7,12 @@ app.use(express.json());
 app.use(express.urlencoded({extended:true}));
 app.use(express.static("public"));
 app.use(cookieParser());
-
+// base url
+app.get('/', (req,res) =>{
+     res.json({
+        message : "sever deployed sucessfully"
+     })
+})
 import userRouter from "./routes/user.routes.js";
 import vedioRouter from "./routes/video.routes.js"
 import subscriptionRouter from "./routes/subscription.routes.js"

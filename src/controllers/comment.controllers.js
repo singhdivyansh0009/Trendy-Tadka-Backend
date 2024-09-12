@@ -41,7 +41,7 @@ const addComment = async (req,res) => {
     }
 }
 
-// to remove comment (Todo : same in the playlist controller of the delete playlist)
+// to remove comment 
 const removeComment = async (req,res) => {
     try {
         const { commentId } = req.params;
@@ -118,7 +118,7 @@ const updateComment = async (req,res) => {
     }
 }
 
-// to get all comments
+// to get all comments (TODO : add like counts and is logined user liked on comment )
 const getAllComments = async (req,res) => {
     try {
         // get the data from url 
