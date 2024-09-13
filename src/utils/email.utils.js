@@ -8,7 +8,7 @@ export const sendEmail = async (senderName = "",senderEmail,recieverEmail,messag
             port: process.env.SMTP_PORT,
             secure: process.env.SMTP_PORT !== "587", 
             auth: {
-              user: process.env.MY_EMAIL_ID,
+              user: process.env.MY_EMAIL_ID ,
               pass: process.env.MY_EMAIL_PASSWORD,
             },
           });

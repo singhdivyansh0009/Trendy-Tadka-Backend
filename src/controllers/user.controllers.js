@@ -309,7 +309,7 @@ const sendOtp = async (req,res) =>{
       subject : "OTP for login",
       text : `Your OTP is ${otp} `,
    }
-   const mailResponse = await sendEmail("Divyansh","craig83@ethereal.email",email,message);
+   const mailResponse = await sendEmail("Divyansh","tadkatrendy1@gmail.com",email,message);
    if(!mailResponse)
       throw new ApiError(500,"Failed to send OTP");
    // send the response
