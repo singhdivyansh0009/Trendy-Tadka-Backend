@@ -140,7 +140,8 @@ const loginUser = async (req,res) => {
         // send the token to cookies and response to client
         const options = {
            httpOnly: true,  // can only modified through server
-           // secure: true  // uncomment in production
+           // secure: true,  // uncomment in production
+           sameSite: 'Strict'
         }
         return res
                .status(200)
