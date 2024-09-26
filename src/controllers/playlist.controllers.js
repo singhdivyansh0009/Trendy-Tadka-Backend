@@ -9,6 +9,7 @@ const createPlaylist = async (req,res) => {
      try {
         //get the data from the user
         const {name , description} = req.body
+        console.log(req.body);
         if(!name || !description)
             throw new ApiError(400, "All field required");
         
@@ -133,78 +134,98 @@ const deletePlaylist = async (req,res) => {
     }
 }
 
-// to add videos to playlist  (TODO : to add multiple videos at a time) (Not tested)
-const addVideosToPlaylist = async (req,res) => {
+// To add videos to playlist 
+const addVideosToPlaylist = async (req, res) => {
     try {
-        const { playlistId , videoId} = req.params;
-        if(!playlistId)
-            throw new ApiError(400,"playlist is missing");
+        const { playlistId } = req.params;
+        const { videoIds } = req.body; // Accept an array of video IDs from the request body
+        
+        if (!playlistId)
+            throw new ApiError(400, "Playlist ID is missing");
 
-        // get the playlist and add video
+        if (!videoIds || !Array.isArray(videoIds) || videoIds.length === 0)
+            throw new ApiError(400, "At least one video ID is required");
+
+        // get the playlist and add videos
         const playlist = await Playlist.findOneAndUpdate(
             {
-                _id : playlistId,
-                owner : req.user?._id
+                _id: playlistId,
+                owner: req.user?._id
             },
             {
-                $push : {
-                    videos : videoId
+                $push: {
+                    videos: { $each: videoIds } // Use $each to add multiple videos
                 }
             },
             {
-                new : true
+                new: true
             }
         );
-        if(!playlist)
-            throw new ApiError(404,"playlist not found");
 
-        return res.status(200)
-                  .json(new ApiResponse(
-                    200,
-                    playlist,
-                    "Video added to playlist"
-                  ))
+        if (!playlist)
+            throw new ApiError(404, "Playlist not found");
+
+        return res.status(200).json(new ApiResponse(
+            200,
+            playlist,
+            "Videos added to playlist"
+        ));
     } catch (err) {
-        console.log("Error while adding video :",err);
-        if(err instanceof ApiError)
+        console.log("Error while adding videos:", err);
+        if (err instanceof ApiError)
             return res.status(err.statusCode).json(err);
-        return res.status(500).json({message:"Internal server error"});
+        return res.status(500).json({ message: "Internal server error" });
     }
 }
+
 
 // to remove videos from playlist (Not tested)
-const removeVideosFromPlaylist = async (req,res) => {
+const removeVideosFromPlaylist = async (req, res) => {
     try {
-        const { playlistId , videoId} = req.params;
-        if(!playlistId)
-            throw new ApiError(400,"playlist is missing");
-
-        // get the playlist
-        const playlist = await Playlist.findOneAndDelete(
-            {
-                _id : playlistId,
-                $in : {
-                    videos : videoId
-                }, 
-                owner : req.user?._id
-            }
-        );
-        if(!playlist)
-            throw new ApiError(404,"playlist not found");
-        
-        return res.status(200)
-                  .json(new ApiResponse(
-                    200,
-                    playlist,
-                    "Video removed from playlist"
-                  ))
+      const { videoId, playlistId } = req.params;
+  
+      // Validate request parameters
+      if (!playlistId) {
+        throw new ApiError(400, "Playlist ID is missing");
+      }
+      if (!videoId) {
+        throw new ApiError(400, "Video ID is missing");
+      }
+  
+      // Find the playlist and remove the video
+      const playlist = await Playlist.findOneAndUpdate(
+        {
+          _id: playlistId,
+          owner: req.user?._id,  // Ensure the owner of the playlist matches the current user
+          videos: videoId  // Check if the video exists in the playlist
+        },
+        {
+          $pull: { videos: videoId }  // Remove the video from the videos array
+        },
+        {
+          new: true  // Return the updated playlist
+        }
+      );
+  
+      // If the playlist doesn't exist or the video isn't part of it
+      if (!playlist) {
+        throw new ApiError(404, "Playlist not found or video not part of playlist");
+      }
+  
+      // Successfully removed the video from the playlist
+      return res.status(200).json(
+        new ApiResponse(200, playlist, "Video removed from playlist")
+      );
     } catch (err) {
-        console.log("Error while removing video :",err);
-        if(err instanceof ApiError)
-            return res.status(err.statusCode).json(err);
-        return res.status(500).json({message:"Internal server error"});
+      console.error("Error while removing video:", err);
+  
+      if (err instanceof ApiError) {
+        return res.status(err.statusCode).json({ message: err.message });
+      }
+      return res.status(500).json({ message: "Internal server error" });
     }
-}
+  };
+  
 
 // to get playlist by id  
 const getPlaylistById = async (req,res) =>{
@@ -295,7 +316,7 @@ const getUserPlaylists = async (req,res) =>{
                     name : 1,
                     description : 1,
                     thumbnail : 1,
-                    "owner.username":1,
+                    "owner.fullName":1,
                     "owner.avatar": 1
                 }
             }

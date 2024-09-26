@@ -9,7 +9,7 @@ import { upload } from "../middlewares/multer.middlewares.js";
 import Router from "express";
 const router = Router();
 // route to upload the video
-router.route("/upload-video").post(
+router.route("/upload").post(
     verifyJWT,
     upload.fields( [{
         name : "videoFile",
@@ -31,5 +31,5 @@ router.route("/:id").get(verifyJWT,getVideoById);
 router.route("/add-to-watch-history").post(verifyJWT,addToWatchHistory);
 
 //route to delete the video
-router.route("/delete-video").post(verifyJWT,deleteVideo);
+router.route("/").delete(verifyJWT,deleteVideo);
 export default router;

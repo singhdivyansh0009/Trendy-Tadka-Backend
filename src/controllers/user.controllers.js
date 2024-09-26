@@ -35,9 +35,9 @@ const registerUser = async (req,res) =>{
             if( [fullName,email,username,password].some((fields)=> fields?.trim() === "") ){
                throw new ApiError(400,"All field is required");
             }
-            
+            console.log(req.files);
             // check for the files
-            if(!req.files.avatar)
+            if(!req.files?.avatar)
                throw new ApiError(400,"Avatar is required");
 
             const avatarLocalPath = req.files?.avatar[0]?.path;
@@ -140,7 +140,7 @@ const loginUser = async (req,res) => {
         // send the token to cookies and response to client
         const options = {
            httpOnly: true,  // can only modified through server
-           secure: true
+         //   secure: true  // uncomment in production
         }
         return res
                .status(200)
@@ -458,7 +458,7 @@ const getUserChannelProfile = async(req,res) =>{
      if(!username){
         throw new ApiError(404,"username is missing")
      }
-
+     
      //aggregation pipeline
      const channel = await User.aggregate([
           // stage 1 : Get the user channel
@@ -516,7 +516,6 @@ const getUserChannelProfile = async(req,res) =>{
             }
           }
      ]);
-     console.log(channel);
 
      //check for channel
      if(!channel[0]){
@@ -585,7 +584,8 @@ const getWatchHistory = async(req,res) =>{
          },
       }
    ]);
-  
+
+   
    return res
          .status(200)
          .json(new ApiResponse(
@@ -594,6 +594,44 @@ const getWatchHistory = async(req,res) =>{
             "watch history sent sucessfully"
          ))
 }
+
+const updateUser = async(req,res) => {
+   try{
+      const {fullName,email} = req.body;
+      if(!fullName || !email)
+         throw new ApiError(400,'Missing fields');
+      
+      const userId = req?.user._id;
+      if(!userId)
+         throw new ApiError(401,'Unauthorized request');
+
+      const user = await User.findByIdAndUpdate(userId,
+         {
+            fullName : fullName,
+            email : email
+         },
+         {
+            new:true
+         }
+      )
+      if(!user)
+         throw new ApiError(404,"User not found");
+
+      return res.status(200)
+                .json(new ApiResponse(
+                  200,
+                  user,
+                  'Updated Successfully'
+                ))
+
+   }catch(err){
+       console.log("Error while updating avatar :", err);
+       if(err instanceof ApiError)
+         return res.status(err.statusCode).json(err);
+      return res.status(500).json({message:"Internal server error"});
+   }
+}
+
 export {
    registerUser,
    loginUser,
@@ -605,5 +643,6 @@ export {
    updateAvatar,
    updateCoverImage,
    getUserChannelProfile,
-   getWatchHistory
+   getWatchHistory,
+   updateUser
 };

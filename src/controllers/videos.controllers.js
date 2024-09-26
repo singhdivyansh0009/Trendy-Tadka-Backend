@@ -7,12 +7,36 @@ import { User } from "../models/user.models.js";
 import mongoose from "mongoose";
 // import { getLikeCount } from "./like.controllers.js";
 
+// function to get the time diffrence 
+const getTimeDifference = (createdAt) => {
+  // get the current time
+  const now = new Date();
+
+  // get the diffrence between the document creation time and current time
+  const differenceInMilliseconds = now - createdAt;
+  // convert in all time format
+  const differenceInSeconds = Math.floor(differenceInMilliseconds / 1000);
+  const differenceInMinutes = Math.floor(differenceInMilliseconds / (1000 * 60));
+  const differenceInHours = Math.floor(differenceInMilliseconds / (1000 * 60 * 60));
+  const differenceInDays = Math.floor(differenceInMilliseconds / (1000 * 60 * 60 * 24));
+  
+  return {
+      differenceInSeconds,
+      differenceInMinutes,
+      differenceInHours,
+      differenceInDays,
+  };
+};
+
 // function to manage views
 // Note : There is issue in managing the views when user clear the watch history
 const manageViews = async (videoId,user) => {
     try{
       // check if the video is present in watch no need to increase view
-      const isVideoPresent = user.watchHistory.find((value) => value === videoId);
+      const isVideoPresent = user.watchHistory.find((value) => {
+        return value._id.equals(videoId); // Direct comparison
+      });
+      console.log('view',isVideoPresent);
       if(isVideoPresent)
          return;
 
@@ -105,7 +129,7 @@ const uploadVideo = async (req,res) => {
 const getVideos = async(req,res) => {
   try{
     // get the data from the query of the url
-    const { page = 1, limit = 2, sortBy = "createdAt", sortType="desc", username } = req.query;
+    const { page = 1, limit = 10, sortBy = "createdAt", sortType="desc", userId } = req.query;
     
     // get the value for sorting the data
     const sortOrder = sortType === "asc" ? 1 : -1;
@@ -118,7 +142,7 @@ const getVideos = async(req,res) => {
     // create an aggregation pipeline to filter the videos
     const pipeline = [
       {
-          $match: username ? { username: username } : {} 
+          $match: userId ? { owner : new mongoose.Types.ObjectId(userId) } : {} 
       },
       {
           $sort: {
@@ -137,18 +161,31 @@ const getVideos = async(req,res) => {
         $unwind : "$owner"
       },
       {
-          $project: {
-              videoFile: 1,
-              title: 1,
-              descriptions: 1,
-              views: 1,
-              thumbnail: 1,
-              "owner.username": 1,
-              "owner.avatar":1,
-              createdAt: 1
+        $addFields: {
+          timeSinceCreated: {
+            $divide: [
+              { $subtract: [new Date(), "$createdAt"] }, // Current time - createdAt
+              1000 // Convert milliseconds to seconds
+            ]
           }
+        }
+      },
+      {
+        $project: {
+          videoFile: 1,
+          title: 1,
+          descriptions: 1,
+          views: 1,
+          thumbnail: 1,
+          "owner.fullName": 1,
+          "owner.avatar": 1,
+          "owner.username": 1,
+          "owner._id": 1,
+          createdAt: 1,
+          timeSinceCreated: 1 // Include the new field in the result
+        }
       }
-  ];
+    ];
   
     // get the limited documents as per option and pipeline 
     const result = await Video.aggregatePaginate(pipeline, options);
@@ -193,14 +230,47 @@ const getVideoById = async(req,res) => {
           },
         },
         {
+          $lookup : {
+            from : "users",
+            localField : "owner",
+            foreignField : "_id",
+            as : "owner"
+         }
+        },
+        {
+          $lookup : {
+            from : 'subscriptions',
+            localField: 'owner',
+            foreignField: 'channel',
+            as : "subscribers"
+          }
+        },
+        {
+           $unwind : "$owner"
+        },
+        {
             $addFields:{
               likeCount : {
                  $size: "$likes"
               },
               isLiked : {
                 $in: [req.user?._id, "$likes.likeBy"]
-              }
+              },
+              subscriberCount : {$size : "$subscribers"},
+              isSubscribed : {
+                $cond: {
+                    if : {$in : [req.user?._id,"$subscribers.subscriber"]},
+                    then : true,
+                    else : false
+                }
+             }
           }
+        },
+        {
+            $project : {
+            "owner.password": 0,
+            "owner.refreshToken":0,
+            }
         }
         
     ]);
@@ -208,7 +278,6 @@ const getVideoById = async(req,res) => {
     if(!video)
       throw new ApiError(404,"Video not found");
   
-    console.log(video);
 
     // sent the response
     return res.status(200)
@@ -240,23 +309,20 @@ const addToWatchHistory = async(req,res) => {
     const userId = req.user?._id;
     if(!userId)
        throw new ApiError(400,"Unauthorized access");
-    
+
     // get the user from the database
     const user = await User.findByIdAndUpdate(
       userId,
       {
         $push: {watchHistory : videoId}
-      },
-      {
-        new : true
       }
     ).select("-password -refreshToken");
     if(!user)
       throw new ApiError(400,"Unauthorized access")
-
+    
     // manage the view on video
     await manageViews(videoId,user);
-
+    
     // sent response 
     return res.status(200)
               .json(new ApiResponse(
@@ -278,14 +344,14 @@ const addToWatchHistory = async(req,res) => {
 const deleteVideo = async(req,res) => {
    try{
       // get the video id
-      const {id} = req.body;
-      if(!id)
+      const {videoId} = req.query;
+      if(!videoId)
         throw new ApiError(401,"vedio id is required");
 
       // delete the video from the database
       const isDeleted = await Video.deleteOne(
         {
-          _id : id
+          _id : videoId
         }
       )
       if(!isDeleted)

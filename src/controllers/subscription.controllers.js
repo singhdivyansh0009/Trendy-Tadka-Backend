@@ -8,10 +8,9 @@ const toggleSubscription = async (req,res) => {
     try{
        // get the channel whome subscribing
        const { id : channelId } = req.query;
-    
        if(!channelId)
         throw new ApiError(404,"Channel is missing");
-
+        
        const subscription = await Subscription.findOne({
            channel : channelId,
            subscriber : req.user._id
@@ -28,7 +27,6 @@ const toggleSubscription = async (req,res) => {
                channel : channelId,
                subscriber : req.user._id    
            })
-           console.log("subscribed");
        }
        return res.status(200)
                  .json(new ApiResponse(
@@ -164,6 +162,7 @@ const getSubscribedChannelList = async (req,res) => {
             $group : {
                 _id : "$subscriber",
                 channelSubscribed: { $push: {
+                      userId : "$channelSubscribed._id",
                       username : "$channelSubscribed.username",
                       fullName : "$channelSubscribed.fullName",
                       avatar : "$channelSubscribed.avatar",

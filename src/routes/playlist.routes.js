@@ -24,7 +24,7 @@ router.route("/:playlistId").get(getPlaylistById)
 router.route("/user/:userId").get(getUserPlaylists);
 
 // routes to remove and add videos from playlist
-router.route("/add/:videoId/:playlistId").post(verifyJWT,addVideosToPlaylist);
-router.route("/remove/:videoId/:playlistId").post(verifyJWT,removeVideosFromPlaylist);
+router.route("/add/:playlistId").post(verifyJWT,addVideosToPlaylist);
+router.route("/remove/:videoId/:playlistId").delete(verifyJWT,removeVideosFromPlaylist);
 
 export default router;

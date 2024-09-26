@@ -60,7 +60,8 @@ userSchema.methods.genrateAccessToken = function (params) {
         {
             _id : this._id,
             username : this.username,
-            email : this.email
+            email : this.email,
+            avatar : this.avatar
         },
         process.env.ACCESS_TOKEN_SECRET,
         {

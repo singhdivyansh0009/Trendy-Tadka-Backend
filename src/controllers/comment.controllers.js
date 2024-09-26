@@ -80,6 +80,7 @@ const updateComment = async (req,res) => {
     try {
         const { commentId } = req.params;
         const { content } = req.body;
+    
         if(!commentId || !content)
             throw new ApiError(400,"Missing field");
         
@@ -122,7 +123,7 @@ const updateComment = async (req,res) => {
 const getAllComments = async (req,res) => {
     try {
         // get the data from url 
-        const {page = 1, limit = 20, sortType = "desc", sortBy = "createdAt" , videoId } = req.query;
+        const {page = 1, limit = 10, sortType = "desc", sortBy = "createdAt" , videoId } = req.query;
 
         // create a aggregatin pipeline
         const pipeline = [
@@ -131,6 +132,11 @@ const getAllComments = async (req,res) => {
                     video : new mongoose.Types.ObjectId(videoId)
                 }
             }, 
+            {
+                $sort: {
+                    [sortBy]: sortType === 'desc' ? -1 : 1
+                }
+            },
             {
                $lookup : {
                    from : "users",
@@ -148,7 +154,8 @@ const getAllComments = async (req,res) => {
                     "owner.username" : 1,  // to include field inside of field wrap in quotes
                     "owner.avatar": 1
                 }
-            }
+            },
+            
         ]
         const options = {
             page,
