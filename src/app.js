@@ -37,3 +37,5 @@ app.use('/api/v1/subscription', subscriptionRouter); // middleware for subscript
 app.use('/api/v1/playlist', playlistRouter); // middleware for playlist routes
 app.use('/api/v1/comment', commentRouter); // middleware for comment routes
 app.use('/api/v1/like', likeRouter); // middleware for Like routes
+
+export default app;
