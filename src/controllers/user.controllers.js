@@ -141,7 +141,7 @@ const loginUser = async (req,res) => {
         const options = {
            httpOnly: true,  // can only modified through server
            // secure: true,  // uncomment in production
-           sameSite: 'Strict'
+           sameSite: 'None'
         }
         return res
                .status(200)
