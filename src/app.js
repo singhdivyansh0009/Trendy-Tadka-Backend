@@ -3,7 +3,7 @@ import cors from "cors";
 import cookieParser from "cookie-parser";
 const app = express();
 const corsOptions = {
-   origin: 'http://localhost:5173', // Replace with your frontend's domain
+   origin: 'https://youtube-backend-1-sor8.onrender.com', // Replace with your frontend's domain
    credentials: true // Allow cookies to be sent and received
  };
 app.use(cors(corsOptions));
