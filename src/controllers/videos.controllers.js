@@ -129,7 +129,7 @@ const uploadVideo = async (req,res) => {
 const getVideos = async(req,res) => {
   try{
     // get the data from the query of the url
-    const { page = 1, limit = 10, sortBy = "createdAt", sortType="desc", userId } = req.query;
+    const { page = 1, limit = 9, sortBy = "createdAt", sortType="desc", userId } = req.query;
     
     // get the value for sorting the data
     const sortOrder = sortType === "asc" ? 1 : -1;
