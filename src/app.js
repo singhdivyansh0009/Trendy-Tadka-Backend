@@ -5,9 +5,13 @@ const app = express();
 
 // Corrected CORS settings
 const corsOptions = {
-   origin: 'https://trendy-tadka-frontend.vercel.app', // Frontend's domain
-   credentials: true // Allow cookies to be sent and received
+  origin: [
+    'https://trendy-tadka-frontend.vercel.app',  // Deployed frontend
+    'http://localhost:5173'  // Vite's default localhost port
+  ],
+  credentials: true, // Allow cookies to be sent and received
 };
+
 app.use(cors(corsOptions));
 app.use(express.json());
 app.use(express.urlencoded({extended:true}));
