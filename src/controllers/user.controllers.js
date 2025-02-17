@@ -7,6 +7,7 @@ import fs from "fs";
 import { genrateOtp } from "../utils/otp.utils.js";
 import { sendEmail } from "../utils/email.utils.js";
 import mongoose from "mongoose";
+import {History} from "../models/watchHistory.models.js"
 
 // function to genrate access and refresh token
 const genrateTokens = async (user) => {
