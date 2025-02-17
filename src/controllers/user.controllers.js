@@ -544,54 +544,42 @@ const getUserChannelProfile = async(req,res) =>{
 
 //function to get watch history 
 const getWatchHistory = async(req,res) =>{
-   const user = await User.aggregate([
+  const history = await History.aggregate([
       {
-        $match : {
-           _id : new mongoose.Types.ObjectId(req.user._id) // in aggregate the string does not automatically conver into mongodb objectId
+        $match: {
+          user: req.user._id
         }
       },
       {
-         $lookup : {
-            from:"videos",
-            localField:"watchHistory",
-            foreignField:"_id",
-            as:"watchHistory",
-            pipeline: [
-             {
-               $lookup : {
-                  from : "users",
-                  localField:"owner",
-                  foreignField:"_id",
-                  as:"owner",
-                  pipeline : [
-                     {
-                        $project:{
-                           fullName:1,
-                           username:1,
-                           avatar:1
-                        }
-                     }
-                  ]
-               }
-             },
-             {
-               $addFields : {
-                  owner : {
-                     $first : "$owner"
-                  }
-               }
-             }
-            ]
-         },
-      }
-   ]);
-
+        $lookup: {
+          from: 'videos',
+          localField: 'video',
+          foreignField: '_id',
+          as: 'historyVideo'
+        }
+      },
+      {
+         $unwind: '$historyVideo'
+      },
+      {
+        $sort: { updatedAt: -1 }
+      },
+      {
+        $project: {
+          user:0,
+          video:0,
+        }
+      },
+      
+    ]);
+    console.log(history);
    
    return res
          .status(200)
          .json(new ApiResponse(
             200,
-            user[0].watchHistory,
+            // user[0].watchHistory,
+            history,
             "watch history sent sucessfully"
          ))
 }
