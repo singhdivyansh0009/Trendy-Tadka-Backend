@@ -5,6 +5,7 @@ import fs from "fs";
 import { Video } from "../models/video.model.js";
 import { User } from "../models/user.models.js";
 import mongoose from "mongoose";
+import {History} from "../models/watchHistory.models.js"
 // import { getLikeCount } from "./like.controllers.js";
 
 // function to get the time diffrence 
@@ -29,19 +30,13 @@ const getTimeDifference = (createdAt) => {
 };
 
 // function to manage views
-// Note : There is issue in managing the views when user clear the watch history
-const manageViews = async (videoId,user) => {
-    try{
-      // check if the video is present in watch no need to increase view
-      const isVideoPresent = user.watchHistory.find((value) => {
-        return value._id.equals(videoId); // Direct comparison
-      });
-      console.log('view',isVideoPresent);
-      if(isVideoPresent)
+const manageViews = async (videoId,userId) => {
+    try{  
+      const history = await History.findOne({user:userId,video:videoId});
+      // console.log('history',history);
+      if(history)
          return;
 
-      // else increase the view by 1 
-      // get the video document from db
       const video = await Video.findByIdAndUpdate(
              videoId,
              {
@@ -50,6 +45,7 @@ const manageViews = async (videoId,user) => {
                }
              }
       );
+      // console.log(video);
       if(!video)
         throw new ApiError(404,"video not found");
       
@@ -309,25 +305,42 @@ const addToWatchHistory = async(req,res) => {
     const userId = req.user?._id;
     if(!userId)
        throw new ApiError(400,"Unauthorized access");
-
-    // get the user from the database
-    const user = await User.findByIdAndUpdate(
-      userId,
-      {
-        $push: {watchHistory : videoId}
-      }
-    ).select("-password -refreshToken");
-    if(!user)
-      throw new ApiError(400,"Unauthorized access")
     
     // manage the view on video
-    await manageViews(videoId,user);
+    await manageViews(videoId,userId);
+
+    const startOfDay = new Date();
+    startOfDay.setHours(0, 0, 0, 0);
+
+    const endOfDay = new Date();
+    endOfDay.setHours(23, 59, 59, 999);
+
+    // Check if history exists for the same user, video, and day
+    const isHistory = await History.findOneAndUpdate(
+    {
+      user: userId,
+      video: videoId,
+      createdAt: { $gte: startOfDay, $lte: endOfDay } // Same day check
+    },
+    { $set: { updatedAt: Date.now() } }, // Update time
+    { new: true }
+    );
+
+   // If no history found, create a new entry
+  let history = isHistory;
+  if (!isHistory) {
+     history = await History.create({
+      user: userId,
+      video: videoId
+    });
+    if(!history)
+      throw new ApiError(400,"Error while added to watch History");
+ }
     
-    // sent response 
     return res.status(200)
               .json(new ApiResponse(
                 200,
-                user,
+                history,
                 "Video added to watch history successfully"
               ))
   }catch(err){
